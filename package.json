@@ -1,6 +1,6 @@
 {
   "name": "create-tokamak-zk-evm",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "NPX-installable CLI package for Tokamak-zk-EVM proof generation and verification",
   "main": "dist/index.js",
   "bin": {

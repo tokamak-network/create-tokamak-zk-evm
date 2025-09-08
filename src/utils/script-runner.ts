@@ -366,14 +366,20 @@ export class ScriptRunner {
     );
 
     // Save verification result to output file
-    const verifyOutputDir = path.join(this.binaryPaths.resourceDir, 'verify', 'output');
+    const verifyOutputDir = path.join(
+      this.binaryPaths.resourceDir,
+      'verify',
+      'output'
+    );
     await fs.ensureDir(verifyOutputDir);
-    
+
     const verificationResult = {
       verified: result.success,
       timestamp: new Date().toISOString(),
       exitCode: result.exitCode,
-      message: result.success ? 'Proof verification successful' : 'Proof verification failed'
+      message: result.success
+        ? 'Proof verification successful'
+        : 'Proof verification failed',
     };
 
     await fs.writeJson(
@@ -472,6 +478,55 @@ export class ScriptRunner {
       return results;
     } catch (error) {
       logger.error(`Proof generation pipeline failed: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Run partial proof generation (synthesizer + preprocess only)
+   * Used for regeneration mode where we only need to regenerate components
+   */
+  async runPartialProofGeneration(
+    txHash: string,
+    options: {
+      verbose?: boolean;
+      onProgress?: ProgressCallback;
+      rpcUrl?: string;
+      skipTrustedSetup?: boolean;
+      regenerateOnly?: boolean;
+    } = {}
+  ): Promise<{
+    synthesis: ScriptExecutionResult;
+    preprocess: ScriptExecutionResult;
+  }> {
+    const results: any = {};
+
+    try {
+      // Always skip trusted setup for partial generation
+      logger.info(
+        'Running partial proof generation (synthesizer + preprocess only)'
+      );
+
+      // Step 1: Synthesizer
+      options.onProgress?.('Running Synthesizer', 1, 2);
+      logger.info('Running Synthesizer...');
+      results.synthesis = await this.runSynthesizer(txHash, options);
+      if (!results.synthesis.success) {
+        throw new Error('Synthesizer failed');
+      }
+
+      // Step 2: Preprocessing
+      options.onProgress?.('Running preprocessing', 2, 2);
+      logger.info('Running preprocessing...');
+      results.preprocess = await this.runPreprocess(options);
+      if (!results.preprocess.success) {
+        throw new Error('Preprocessing failed');
+      }
+
+      logger.info('Partial proof generation completed successfully');
+      return results;
+    } catch (error) {
+      logger.error(`Partial proof generation failed: ${error}`);
       throw error;
     }
   }

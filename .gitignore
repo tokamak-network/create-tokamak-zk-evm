@@ -61,3 +61,5 @@ tokamak-outputs/
 
 # zip
 *.tar.gz
+
+test-verify-project
