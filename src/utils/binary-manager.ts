@@ -476,4 +476,176 @@ export class BinaryManager {
       // Don't throw error as this is not critical
     }
   }
+
+  /**
+   * Check if setup files are available in the release
+   */
+  async hasSetupFiles(): Promise<boolean> {
+    try {
+      const release = await this.githubClient.getLatestRelease(
+        this.config.includePrerelease
+      );
+      const setupAsset = this.githubClient.selectSetupAsset(release.assets);
+      return setupAsset !== null;
+    } catch (error) {
+      logger.debug('Error checking for setup files:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Download and install setup files from GitHub release
+   */
+  async downloadAndInstallSetupFiles(): Promise<void> {
+    const release = await this.githubClient.getLatestRelease(
+      this.config.includePrerelease
+    );
+
+    logger.info(
+      `Using release: ${release.tag_name} (prerelease: ${release.prerelease})`
+    );
+
+    const setupAsset = this.githubClient.selectSetupAsset(release.assets);
+    if (!setupAsset) {
+      throw new Error('No setup files found in the release');
+    }
+
+    const binaryPaths = this.getBinaryPaths();
+    const tempDir = path.join(binaryPaths.binaryDir, '..', 'temp-setup');
+    await fs.ensureDir(tempDir);
+
+    try {
+      const setupFilePath = path.join(tempDir, setupAsset.name);
+
+      // Download setup files
+      await this.githubClient.downloadAsset(setupAsset, setupFilePath);
+
+      // Extract setup files to resource/setup/output
+      const setupOutputDir = path.join(
+        binaryPaths.resourceDir,
+        'setup',
+        'output'
+      );
+      await fs.ensureDir(setupOutputDir);
+
+      if (setupAsset.name.endsWith('.zip')) {
+        await this.extractZipToDirectory(setupFilePath, setupOutputDir);
+      } else if (setupAsset.name.endsWith('.tar.gz')) {
+        await this.extractTarGzToDirectory(setupFilePath, setupOutputDir);
+      }
+
+      logger.info('✅ Setup files installed successfully');
+    } finally {
+      // Clean up temp directory
+      if (await fs.pathExists(tempDir)) {
+        await fs.remove(tempDir);
+      }
+    }
+  }
+
+  /**
+   * Check if setup files are already installed
+   */
+  async isSetupInstalled(): Promise<boolean> {
+    const binaryPaths = this.getBinaryPaths();
+    const setupOutputDir = path.join(
+      binaryPaths.resourceDir,
+      'setup',
+      'output'
+    );
+
+    // Check for essential setup files
+    const setupFiles = [
+      'combined_sigma.bin',
+      'combined_sigma.json',
+      'sigma_preprocess.json',
+      'sigma_verify.json',
+    ];
+
+    if (!(await fs.pathExists(setupOutputDir))) {
+      return false;
+    }
+
+    let foundFiles = 0;
+    for (const file of setupFiles) {
+      const filePath = path.join(setupOutputDir, file);
+      if (await fs.pathExists(filePath)) {
+        foundFiles++;
+      }
+    }
+
+    // All 4 files must be present
+    return foundFiles === setupFiles.length;
+  }
+
+  private async extractZipToDirectory(
+    zipPath: string,
+    targetDir: string
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (!zipfile) {
+          reject(new Error('Failed to open zip file'));
+          return;
+        }
+
+        zipfile.readEntry();
+        zipfile.on('entry', (entry) => {
+          if (/\/$/.test(entry.fileName)) {
+            // Directory entry
+            zipfile.readEntry();
+          } else {
+            // File entry
+            const outputPath = path.join(
+              targetDir,
+              path.basename(entry.fileName)
+            );
+
+            zipfile.openReadStream(entry, (err, readStream) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              if (!readStream) {
+                reject(new Error('Failed to create read stream'));
+                return;
+              }
+
+              const writeStream = createWriteStream(outputPath);
+              readStream.pipe(writeStream);
+
+              writeStream.on('close', () => {
+                zipfile.readEntry();
+              });
+
+              writeStream.on('error', reject);
+            });
+          }
+        });
+
+        zipfile.on('end', () => {
+          resolve();
+        });
+
+        zipfile.on('error', reject);
+      });
+    });
+  }
+
+  private async extractTarGzToDirectory(
+    tarPath: string,
+    targetDir: string
+  ): Promise<void> {
+    await tar.extract({
+      file: tarPath,
+      cwd: targetDir,
+      strip: 1, // Remove the top-level directory from the archive
+    });
+  }
 }

@@ -43,12 +43,12 @@ export async function promptForRpcUrl(): Promise<string> {
   console.log();
 
   const defaultRpcUrl = 'https://eth.llamarpc.com'; // Free public RPC for testing
-  
+
   const askForRpcUrl = async (): Promise<string> => {
     const readline = await import('readline');
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     return new Promise((resolve) => {
@@ -57,12 +57,14 @@ export async function promptForRpcUrl(): Promise<string> {
         async (answer) => {
           rl.close();
           const rpcUrl = answer.trim() || defaultRpcUrl;
-          
+
           // Basic URL validation
           try {
             const url = new URL(rpcUrl);
             if (!['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol)) {
-              console.log('\x1b[31m❌ Invalid protocol. Please use http, https, ws, or wss\x1b[0m');
+              console.log(
+                '\x1b[31m❌ Invalid protocol. Please use http, https, ws, or wss\x1b[0m'
+              );
               console.log('\x1b[33m⚠️  Please try again\x1b[0m');
               console.log();
               // Recursively ask again
@@ -74,14 +76,20 @@ export async function promptForRpcUrl(): Promise<string> {
             // Test actual RPC connection
             console.log('\x1b[33m🔍 Testing RPC connection...\x1b[0m');
             const isValid = await testRpcConnection(rpcUrl);
-            
+
             if (isValid) {
-              console.log(`\x1b[32m✅ RPC connection successful: ${rpcUrl}\x1b[0m`);
+              console.log(
+                `\x1b[32m✅ RPC connection successful: ${rpcUrl}\x1b[0m`
+              );
               console.log();
               resolve(rpcUrl);
             } else {
-              console.log('\x1b[31m❌ Failed to connect to RPC endpoint\x1b[0m');
-              console.log('\x1b[90m   Please check your URL and API key\x1b[0m');
+              console.log(
+                '\x1b[31m❌ Failed to connect to RPC endpoint\x1b[0m'
+              );
+              console.log(
+                '\x1b[90m   Please check your URL and API key\x1b[0m'
+              );
               console.log('\x1b[33m⚠️  Please try again\x1b[0m');
               console.log();
               // Recursively ask again
@@ -113,7 +121,7 @@ async function testRpcConnection(rpcUrl: string): Promise<boolean> {
   try {
     // Import axios dynamically to avoid CommonJS/ESM issues
     const axios = await import('axios');
-    
+
     // Make a simple JSON-RPC request to test connectivity
     const response = await axios.default.post(
       rpcUrl,
@@ -132,28 +140,31 @@ async function testRpcConnection(rpcUrl: string): Promise<boolean> {
     );
 
     // Check if we got a valid JSON-RPC response
-    const isValid = response.status === 200 && 
-                   response.data && 
-                   response.data.jsonrpc === '2.0' && 
-                   (response.data.result !== undefined || response.data.error !== undefined);
-    
+    const isValid =
+      response.status === 200 &&
+      response.data &&
+      response.data.jsonrpc === '2.0' &&
+      (response.data.result !== undefined || response.data.error !== undefined);
+
     // If there's an error in the response, it might still be a valid RPC endpoint
     if (response.data.error) {
       // Some common RPC errors that indicate the endpoint is working but has restrictions
       const errorCode = response.data.error.code;
       const errorMessage = response.data.error.message;
-      
+
       // These error codes typically mean the RPC is working but has some restrictions
-      if (errorCode === -32601 || // Method not found
-          errorCode === -32602 || // Invalid params  
-          errorCode === -32000 || // Server error (but server is responding)
-          errorMessage.includes('API key') ||
-          errorMessage.includes('rate limit') ||
-          errorMessage.includes('unauthorized')) {
+      if (
+        errorCode === -32601 || // Method not found
+        errorCode === -32602 || // Invalid params
+        errorCode === -32000 || // Server error (but server is responding)
+        errorMessage.includes('API key') ||
+        errorMessage.includes('rate limit') ||
+        errorMessage.includes('unauthorized')
+      ) {
         return true; // RPC is working, just has restrictions
       }
     }
-    
+
     return isValid;
   } catch (error: any) {
     // Check if it's a network/connection error vs RPC error
@@ -168,7 +179,7 @@ async function testRpcConnection(rpcUrl: string): Promise<boolean> {
         return true;
       }
     }
-    
+
     // Network error, timeout, or other connection issues
     return false;
   }
@@ -184,12 +195,12 @@ export async function promptForProjectName(): Promise<string> {
   console.log();
 
   const defaultProjectName = 'my-tokamak-project';
-  
+
   const askForProjectName = async (): Promise<string> => {
     const readline = await import('readline');
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     return new Promise((resolve) => {
@@ -198,11 +209,13 @@ export async function promptForProjectName(): Promise<string> {
         async (answer) => {
           rl.close();
           const projectName = answer.trim() || defaultProjectName;
-          
+
           // Basic validation for directory name
           if (!/^[a-zA-Z0-9-_]+$/.test(projectName)) {
             console.log('\x1b[31m❌ Invalid project name\x1b[0m');
-            console.log('\x1b[90m   Project names can only contain letters, numbers, hyphens, and underscores\x1b[0m');
+            console.log(
+              '\x1b[90m   Project names can only contain letters, numbers, hyphens, and underscores\x1b[0m'
+            );
             console.log('\x1b[33m⚠️  Please try again\x1b[0m');
             console.log();
             // Recursively ask again
@@ -222,10 +235,180 @@ export async function promptForProjectName(): Promise<string> {
 }
 
 /**
- * Display project setup progress
+ * Display project setup progress (legacy - keeping for compatibility)
  */
-export function displaySetupProgress(): void {
+export function displayProjectSetupProgress(): void {
   console.log('\x1b[34m⚙️  Setting up your Tokamak-zk-EVM project...\x1b[0m');
+  console.log();
+}
+
+/**
+ * Prompt user for setup mode with arrow key navigation
+ * @param hasSetupFiles - Whether setup files are available in release
+ * @returns Promise<string> - The selected setup mode
+ */
+export async function promptForSetupMode(
+  hasSetupFiles: boolean
+): Promise<string> {
+  console.log('\x1b[34m🔧 Trusted Setup Configuration\x1b[0m');
+  console.log(
+    '\x1b[90m   Trusted setup is required for proof generation\x1b[0m'
+  );
+  console.log();
+
+  const options = [
+    {
+      value: 'download',
+      label: 'Download pre-computed setup files',
+      description: '(recommended)',
+      available: hasSetupFiles,
+      color: hasSetupFiles ? '\x1b[32m' : '\x1b[90m',
+    },
+    {
+      value: 'local',
+      label: 'Run trusted setup locally',
+      description: '(takes time but more secure)',
+      available: true,
+      color: '\x1b[33m',
+    },
+    {
+      value: 'skip',
+      label: 'Skip for now',
+      description: '(can run later)',
+      available: true,
+      color: '\x1b[90m',
+    },
+  ];
+
+  // Find default selection (first available option, preferring download)
+  let selectedIndex = hasSetupFiles ? 0 : 1;
+
+  return new Promise((resolve) => {
+    const readline = require('readline');
+
+    // Enable raw mode to capture arrow keys
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(true);
+    }
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    const renderMenu = () => {
+      // Clear previous menu (move cursor up and clear lines)
+      process.stdout.write('\x1b[' + (options.length + 2) + 'A');
+      process.stdout.write('\x1b[0J');
+
+      console.log(
+        '\x1b[36mUse ↑/↓ arrow keys to navigate, Enter to select:\x1b[0m'
+      );
+      console.log();
+
+      options.forEach((option, index) => {
+        const isSelected = index === selectedIndex;
+        const prefix = isSelected ? '\x1b[36m► \x1b[0m' : '  ';
+        const suffix = isSelected ? ' \x1b[36m◀\x1b[0m' : '';
+
+        if (option.available) {
+          console.log(
+            `${prefix}${option.color}${option.label}\x1b[0m ${option.description}${suffix}`
+          );
+        } else {
+          console.log(
+            `${prefix}${option.color}${option.label} (not available)\x1b[0m${suffix}`
+          );
+        }
+      });
+    };
+
+    // Initial render
+    renderMenu();
+
+    const onKeyPress = (_str: string, key: any) => {
+      if (key) {
+        switch (key.name) {
+          case 'up':
+            // Move up, skip unavailable options
+            do {
+              selectedIndex =
+                selectedIndex > 0 ? selectedIndex - 1 : options.length - 1;
+            } while (!options[selectedIndex].available);
+            renderMenu();
+            break;
+
+          case 'down':
+            // Move down, skip unavailable options
+            do {
+              selectedIndex =
+                selectedIndex < options.length - 1 ? selectedIndex + 1 : 0;
+            } while (!options[selectedIndex].available);
+            renderMenu();
+            break;
+
+          case 'return':
+          case 'enter':
+            // Select current option
+            cleanup();
+            console.log();
+            console.log(
+              `\x1b[32m✅ Selected: ${options[selectedIndex].label}\x1b[0m`
+            );
+            resolve(options[selectedIndex].value);
+            break;
+
+          case 'c':
+            if (key.ctrl) {
+              cleanup();
+              process.exit(0);
+            }
+            break;
+
+          case 'escape':
+            cleanup();
+            process.exit(0);
+            break;
+        }
+      }
+    };
+
+    const cleanup = () => {
+      process.stdin.removeListener('keypress', onKeyPress);
+      if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(false);
+      }
+      process.stdin.pause();
+    };
+
+    // Set up keypress listener
+    process.stdin.on('keypress', onKeyPress);
+
+    // For older Node.js versions, we need to enable keypress events
+    if (typeof (process.stdin as any).setRawMode === 'function') {
+      readline.emitKeypressEvents(process.stdin);
+    }
+  });
+}
+
+/**
+ * Display setup progress message
+ * @param mode - The selected setup mode
+ */
+export function displaySetupProgress(mode: string): void {
+  console.log();
+  console.log('\x1b[34m⚙️  Setting up trusted setup files...\x1b[0m');
+
+  switch (mode) {
+    case 'download':
+      console.log('\x1b[90m   Downloading pre-computed setup files...\x1b[0m');
+      break;
+    case 'local':
+      console.log(
+        '\x1b[90m   Running local trusted setup (this may take several minutes)...\x1b[0m'
+      );
+      break;
+    case 'skip':
+      console.log('\x1b[90m   Skipping trusted setup for now...\x1b[0m');
+      break;
+  }
   console.log();
 }
 

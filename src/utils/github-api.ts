@@ -121,7 +121,8 @@ export class GitHubApiClient {
       return (
         name.includes('tokamak-zk-evm') &&
         name.includes(platformName) &&
-        (name.endsWith('.zip') || name.endsWith('.tar.gz'))
+        (name.endsWith('.zip') || name.endsWith('.tar.gz')) &&
+        !name.includes('setup-files') // Exclude setup files from binary assets
       );
     });
 
@@ -133,6 +134,19 @@ export class GitHubApiClient {
     }
 
     return targetAsset;
+  }
+
+  selectSetupAsset(assets: GitHubAsset[]): GitHubAsset | null {
+    // Look for setup files asset
+    const setupAsset = assets.find((asset) => {
+      const name = asset.name.toLowerCase();
+      return (
+        name.includes('setup-files') &&
+        (name.endsWith('.zip') || name.endsWith('.tar.gz'))
+      );
+    });
+
+    return setupAsset || null;
   }
 
   async downloadAsset(asset: GitHubAsset, outputPath: string): Promise<void> {

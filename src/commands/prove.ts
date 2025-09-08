@@ -146,6 +146,47 @@ async function generateProof(
     }
   } catch (error) {
     spinner.fail(chalk.red('❌ Proof generation failed'));
+
+    // Check if error is due to missing setup files
+    if (error instanceof Error && error.message.includes('SETUP_MISSING')) {
+      console.log();
+      console.log(chalk.red('🚫 Missing Trusted Setup Files'));
+      console.log(chalk.gray('====================================='));
+      console.log();
+      console.log(
+        chalk.yellow(
+          'The proof generation failed because trusted setup files are missing.'
+        )
+      );
+      console.log(
+        chalk.gray(
+          'These files are required for proof generation and verification.'
+        )
+      );
+      console.log();
+      console.log(chalk.blue('💡 Solutions:'));
+      console.log();
+      console.log(
+        chalk.green('1. Download pre-computed setup files (recommended):')
+      );
+      console.log(
+        chalk.gray('   tokamak-zk-evm init --setup-mode download --skip-binary')
+      );
+      console.log();
+      console.log(chalk.yellow('2. Run trusted setup locally (takes time):'));
+      console.log(
+        chalk.gray('   tokamak-zk-evm init --setup-mode local --skip-binary')
+      );
+      console.log();
+      console.log(chalk.cyan('3. Generate proof with trusted setup:'));
+      console.log(
+        chalk.gray(
+          '   tokamak-zk-evm prove <tx-hash> --skip-trusted-setup=false'
+        )
+      );
+      console.log();
+    }
+
     throw error;
   }
 }

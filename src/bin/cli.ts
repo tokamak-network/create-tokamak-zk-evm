@@ -7,6 +7,7 @@ import { createProveCommand } from '../commands/prove';
 import { createVerifyCommand } from '../commands/verify';
 import { createExportCommand } from '../commands/export';
 import { createStatusCommand } from '../commands/status';
+import { createSetupCommand } from '../commands/setup';
 import { logger } from '../utils/logger';
 import { ConfigManager } from '../utils/config-manager';
 import { BinaryManager } from '../utils/binary-manager';
@@ -14,6 +15,7 @@ import {
   displayWelcomeScreen,
   promptForProjectName,
   promptForRpcUrl,
+  promptForSetupMode,
   displaySetupProgress,
   displayCompletionMessage,
 } from '../utils/welcome-screen';
@@ -45,6 +47,7 @@ program
 
 // Add commands
 program.addCommand(createInitCommand());
+program.addCommand(createSetupCommand());
 program.addCommand(createProveCommand());
 program.addCommand(createVerifyCommand());
 program.addCommand(createExportCommand());
@@ -54,10 +57,14 @@ program.addCommand(createStatusCommand());
 program
   .command('list-outputs')
   .description('List all proof outputs in the current project')
-  .option('--output-dir <dir>', 'Output directory to scan', './tokamak-outputs')
+  .option(
+    '--output-dir <dir>',
+    'Output directory to scan',
+    './tokamak-zk-evm-outputs'
+  )
   .action(async (options: { outputDir?: string }) => {
     try {
-      await listOutputs(options.outputDir || './tokamak-outputs');
+      await listOutputs(options.outputDir || './tokamak-zk-evm-outputs');
     } catch (error) {
       logger.error('Failed to list outputs:', error);
       process.exit(1);
@@ -277,14 +284,23 @@ async function handleDefaultAction(): Promise<void> {
     // Then prompt for RPC URL
     const rpcUrl = await promptForRpcUrl();
 
+    // Check if setup files are available and prompt for setup mode
+    const configManager = new ConfigManager();
+    const config = await configManager.loadConfig();
+    const binaryManager = new BinaryManager(config);
+    const hasSetupFiles = await binaryManager.hasSetupFiles();
+
+    const setupMode = await promptForSetupMode(hasSetupFiles);
+
     // Show setup progress
-    displaySetupProgress();
+    displaySetupProgress(setupMode);
 
     // Import and run init logic
     const { initializeProject } = await import('../commands/init');
 
     await initializeProject(projectName, {
       rpcUrl: rpcUrl,
+      setupMode: setupMode as 'download' | 'local' | 'skip',
     });
 
     // Show completion message

@@ -1,0 +1,13 @@
+# Tokamak-zk-EVM outputs
+outputs/
+*.log
+
+# Node modules
+node_modules/
+
+# Cache
+.tokamak-zk-evm/
+
+# OS
+.DS_Store
+Thumbs.db

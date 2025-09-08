@@ -25,7 +25,7 @@ export function createVerifyCommand(): Command {
     )
     .option(
       '--output-dir <dir>',
-      'Output directory to scan for proofs (default: ./tokamak-outputs)'
+      'Output directory to scan for proofs (default: ./tokamak-zk-evm-outputs)'
     )
     .option('--verbose', 'Show detailed output')
     .action(
@@ -238,7 +238,7 @@ async function displayVerificationResult(resourceDir: string): Promise<void> {
           ? chalk.green('✅ Valid')
           : chalk.red('❌ Invalid');
         console.log(`Proof Status: ${status}`);
-        
+
         const verificationResult = result.verified
           ? chalk.green('TRUE')
           : chalk.red('FALSE');
@@ -271,7 +271,7 @@ async function verifyInteractive(options: {
   outputDir?: string;
   verbose?: boolean;
 }): Promise<void> {
-  const outputDir = options.outputDir || './tokamak-outputs';
+  const outputDir = options.outputDir || './tokamak-zk-evm-outputs';
 
   logger.info(chalk.blue('🔍 Interactive Proof Verification'));
   console.log();
@@ -456,6 +456,47 @@ async function verifyWithRegeneration(
     }
   } catch (error) {
     spinner.fail(chalk.red('❌ Regeneration failed'));
+
+    // Check if error is due to missing setup files
+    if (error instanceof Error && error.message.includes('SETUP_MISSING')) {
+      console.log();
+      console.log(chalk.red('🚫 Missing Trusted Setup Files'));
+      console.log(chalk.gray('====================================='));
+      console.log();
+      console.log(
+        chalk.yellow(
+          'The verification failed because trusted setup files are missing.'
+        )
+      );
+      console.log(
+        chalk.gray(
+          'These files are required for proof generation and verification.'
+        )
+      );
+      console.log();
+      console.log(chalk.blue('💡 Solutions:'));
+      console.log();
+      console.log(
+        chalk.green('1. Download pre-computed setup files (recommended):')
+      );
+      console.log(
+        chalk.gray('   tokamak-zk-evm init --setup-mode download --skip-binary')
+      );
+      console.log();
+      console.log(chalk.yellow('2. Run trusted setup locally (takes time):'));
+      console.log(
+        chalk.gray('   tokamak-zk-evm init --setup-mode local --skip-binary')
+      );
+      console.log();
+      console.log(chalk.cyan('3. Generate proof with trusted setup:'));
+      console.log(
+        chalk.gray(
+          '   tokamak-zk-evm prove <tx-hash> --skip-trusted-setup=false'
+        )
+      );
+      console.log();
+    }
+
     throw error;
   }
 }

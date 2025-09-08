@@ -10,6 +10,7 @@ NPX-installable CLI package for Tokamak-zk-EVM proof generation and verification
   - 🎯 **Interactive mode**: Select proofs from a list
   - 🔄 **Regenerate mode**: Rebuild components before verification
   - 📊 **Detailed results**: Format validation + cryptographic verification
+- 🔧 **Interactive trusted setup** with arrow key navigation
 - 📦 **Automatic binary management** with platform detection
 - 🌐 **Cross-platform support** (macOS, Linux)
 - 📊 **Progress tracking** and detailed logging
@@ -31,7 +32,10 @@ npx create-tokamak-zk-evm
 ### Generate a Proof
 
 ```bash
-# Generate proof for a transaction
+# Simple proof generation (if RPC URL is already configured)
+tokamak-zk-evm prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88dfdb002
+
+# Generate proof with RPC URL (if not configured)
 tokamak-zk-evm prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88dfdb002 \
   --rpc-url https://mainnet.infura.io/v3/YOUR-PROJECT-ID \
   --verbose
@@ -47,7 +51,7 @@ tokamak-zk-evm prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88
 
 ```bash
 # Basic verification - verify a proof directory
-tokamak-zk-evm verify ./tokamak-outputs/proof-0x6c7903e420-2024-01-15T10-30-00-000Z
+tokamak-zk-evm verify ./tokamak-zk-evm-outputs/proof-0x6c7903e420-2024-01-15T10-30-00-000Z
 
 # Interactive mode - select from available proofs
 tokamak-zk-evm verify --interactive
@@ -87,7 +91,9 @@ tokamak-zk-evm init --network sepolia --skip-binary
 
 - `--output-dir <dir>`: Custom output directory
 - `--network <network>`: Target network (mainnet/sepolia)
+- `--rpc-url <url>`: RPC URL for blockchain connection
 - `--skip-binary`: Skip binary download during initialization
+- `--setup-mode <mode>`: Setup mode: "download", "local", "skip", or "ask" (default)
 
 ### `prove <tx-hash>`
 
@@ -127,7 +133,7 @@ tokamak-zk-evm verify --regenerate ./proof-directory
 
 - `--interactive`: Interactive mode to select from list-outputs
 - `--regenerate`: Regenerate proof components from proof.json and transaction_hash.txt
-- `--output-dir <dir>`: Output directory to scan for proofs (default: ./tokamak-outputs)
+- `--output-dir <dir>`: Output directory to scan for proofs (default: ./tokamak-zk-evm-outputs)
 - `--verbose`: Show detailed output
 
 **Regenerate Mode Requirements:**
@@ -135,6 +141,30 @@ tokamak-zk-evm verify --regenerate ./proof-directory
 - Directory must contain `proof.json` file
 - Directory must contain `transaction_hash.txt` file
 - RPC URL must be configured in project
+
+### `setup [--mode <mode>]`
+
+Configure trusted setup for proof generation with interactive mode.
+
+```bash
+# Interactive mode with arrow key navigation
+tokamak-zk-evm setup
+
+# Direct mode options
+tokamak-zk-evm setup --mode download  # Download pre-computed files
+tokamak-zk-evm setup --mode local     # Run local trusted setup
+tokamak-zk-evm setup --mode skip      # Skip setup for now
+```
+
+**Options:**
+
+- `--mode <mode>`: Setup mode: "download", "local", or "skip"
+
+**Setup Modes:**
+
+- **download**: Download pre-computed setup files from GitHub releases (recommended, faster)
+- **local**: Run trusted setup locally (more secure but takes several minutes)
+- **skip**: Skip setup for now (can run later when needed)
 
 ### `export <type> <destination>`
 
@@ -162,6 +192,9 @@ tokamak-zk-evm status --verbose
 # List all proof outputs
 tokamak-zk-evm list-outputs
 
+# Configure trusted setup (interactive)
+tokamak-zk-evm setup
+
 # Clean cache and temporary files
 tokamak-zk-evm clean --all
 tokamak-zk-evm clean --cache
@@ -180,7 +213,7 @@ Global settings are stored in `~/.tokamak-zk-evm/config.json`:
 ```json
 {
   "binaryVersion": "latest",
-  "outputDir": "./tokamak-outputs",
+  "outputDir": "./tokamak-zk-evm-outputs",
   "keepIntermediates": false,
   "network": "mainnet",
   "cacheDir": "~/.tokamak-zk-evm",
@@ -195,7 +228,7 @@ Create a `tokamak.config.js` file in your project:
 ```javascript
 module.exports = {
   network: 'mainnet', // or 'sepolia'
-  outputDir: './tokamak-outputs',
+  outputDir: './tokamak-zk-evm-outputs',
   keepIntermediates: false,
   rpcUrl: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
   customScripts: {
@@ -266,7 +299,7 @@ tokamak-zk-evm-{platform}/
 The proof generation follows this sequence:
 
 1. **Trusted Setup** (one-time): `1_run-trusted-setup.sh`
-2. **Synthesis**: `2_run-synthesizer.sh <tx-hash>` (requires RPC URL)
+2. **Synthesizer**: `2_run-synthesizer.sh <tx-hash>` (requires RPC URL)
 3. **Preprocessing**: `3_run-preprocess.sh`
 4. **Proof Generation**: `4_run-prove.sh`
 5. **Verification**: `5_run-verify.sh`
@@ -276,7 +309,7 @@ The proof generation follows this sequence:
 Generated proofs are organized as follows:
 
 ```
-tokamak-outputs/
+tokamak-zk-evm-outputs/
 └── proof-{tx-hash-prefix}-{timestamp}/
     ├── summary.json        # Proof metadata
     ├── synthesizer/        # Synthesis outputs
@@ -326,16 +359,24 @@ Message: Proof verification successful
    tokamak-zk-evm init  # Download binary
    ```
 
-2. **RPC URL not set**
+2. **Trusted setup files missing**
+
+   ```bash
+   tokamak-zk-evm setup  # Interactive setup configuration
+   # or
+   tokamak-zk-evm init --setup-mode download  # Download during init
+   ```
+
+3. **RPC URL not set**
 
    ```bash
    tokamak-zk-evm prove 0x123...abc --rpc-url https://your-rpc-url
    ```
 
-3. **Platform not supported**
+4. **Platform not supported**
    - Only macOS and Linux (x64/arm64) are supported
 
-4. **Permission denied**
+5. **Permission denied**
    ```bash
    chmod +x ~/.tokamak-zk-evm/binaries/*/bin/*
    chmod +x ~/.tokamak-zk-evm/binaries/*/*.sh
@@ -354,6 +395,7 @@ tokamak-zk-evm prove 0x123...abc --debug --verbose
 ```bash
 tokamak-zk-evm clean --all
 tokamak-zk-evm init
+tokamak-zk-evm setup  # Configure trusted setup
 ```
 
 ## Development

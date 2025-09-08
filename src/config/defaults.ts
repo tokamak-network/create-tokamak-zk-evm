@@ -4,7 +4,7 @@ import { TokamakConfig } from '../types';
 
 export const DEFAULT_CONFIG: TokamakConfig = {
   binaryVersion: 'latest',
-  outputDir: './tokamak-outputs',
+  outputDir: './tokamak-zk-evm-outputs',
   keepIntermediates: false,
   network: 'mainnet',
   githubRepo: 'tokamak-network/Tokamak-zk-EVM',

@@ -6,24 +6,37 @@ import { logger } from '../utils/logger';
 
 export function createExportCommand(): Command {
   const command = new Command('export');
-  
+
   command
     .description('Export proof outputs to a destination')
-    .argument('<type>', 'Type of output to export (proof, all, synthesizer, preprocess, verify)')
+    .argument(
+      '<type>',
+      'Type of output to export (proof, all, synthesizer, preprocess, verify)'
+    )
     .argument('<destination>', 'Destination file or directory')
-    .option('--source-dir <dir>', 'Source directory containing outputs', './tokamak-outputs')
+    .option(
+      '--source-dir <dir>',
+      'Source directory containing outputs',
+      './tokamak-zk-evm-outputs'
+    )
     .option('--format <format>', 'Export format (json, files)', 'files')
-    .action(async (type: string, destination: string, options: {
-      sourceDir?: string;
-      format?: 'json' | 'files';
-    }) => {
-      try {
-        await exportOutputs(type, destination, options);
-      } catch (error) {
-        logger.error('Export failed:', error);
-        process.exit(1);
+    .action(
+      async (
+        type: string,
+        destination: string,
+        options: {
+          sourceDir?: string;
+          format?: 'json' | 'files';
+        }
+      ) => {
+        try {
+          await exportOutputs(type, destination, options);
+        } catch (error) {
+          logger.error('Export failed:', error);
+          process.exit(1);
+        }
       }
-    });
+    );
 
   return command;
 }
@@ -36,14 +49,23 @@ async function exportOutputs(
     format?: 'json' | 'files';
   }
 ): Promise<void> {
-  const { sourceDir = './tokamak-outputs', format = 'files' } = options;
+  const { sourceDir = './tokamak-zk-evm-outputs', format = 'files' } = options;
 
   logger.info(chalk.blue(`📤 Exporting ${type} outputs to ${destination}`));
 
   // Validate export type
-  const validTypes = ['proof', 'all', 'synthesizer', 'preprocess', 'prove', 'verify'];
+  const validTypes = [
+    'proof',
+    'all',
+    'synthesizer',
+    'preprocess',
+    'prove',
+    'verify',
+  ];
   if (!validTypes.includes(type)) {
-    throw new Error(`Invalid export type: ${type}. Valid types: ${validTypes.join(', ')}`);
+    throw new Error(
+      `Invalid export type: ${type}. Valid types: ${validTypes.join(', ')}`
+    );
   }
 
   // Check if source directory exists
@@ -71,11 +93,13 @@ async function exportOutputs(
   logger.info(chalk.green(`✅ Export completed successfully!`));
 }
 
-async function findMostRecentProofDir(sourceDir: string): Promise<string | null> {
+async function findMostRecentProofDir(
+  sourceDir: string
+): Promise<string | null> {
   const entries = await fs.readdir(sourceDir, { withFileTypes: true });
   const proofDirs = entries
-    .filter(entry => entry.isDirectory() && entry.name.startsWith('proof-'))
-    .map(entry => ({
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith('proof-'))
+    .map((entry) => ({
       name: entry.name,
       path: path.join(sourceDir, entry.name),
     }));
@@ -86,14 +110,16 @@ async function findMostRecentProofDir(sourceDir: string): Promise<string | null>
 
   // Sort by modification time (most recent first)
   const dirsWithStats = await Promise.all(
-    proofDirs.map(async dir => ({
+    proofDirs.map(async (dir) => ({
       ...dir,
       stats: await fs.stat(dir.path),
     }))
   );
 
-  dirsWithStats.sort((a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime());
-  
+  dirsWithStats.sort(
+    (a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime()
+  );
+
   return dirsWithStats[0].path;
 }
 
@@ -121,7 +147,7 @@ async function exportProofFiles(
   format: 'json' | 'files'
 ): Promise<void> {
   const proveDir = path.join(proofDir, 'prove');
-  
+
   if (!(await fs.pathExists(proveDir))) {
     throw new Error('Proof files not found in the specified directory');
   }
@@ -151,7 +177,7 @@ async function exportSpecificType(
   format: 'json' | 'files'
 ): Promise<void> {
   const typeDir = path.join(proofDir, type);
-  
+
   if (!(await fs.pathExists(typeDir))) {
     throw new Error(`${type} outputs not found in the specified directory`);
   }
@@ -171,7 +197,7 @@ async function exportSpecificType(
 
 async function collectAllOutputs(proofDir: string): Promise<any> {
   const outputs: any = {};
-  
+
   // Load summary if available
   const summaryPath = path.join(proofDir, 'summary.json');
   if (await fs.pathExists(summaryPath)) {
@@ -180,7 +206,7 @@ async function collectAllOutputs(proofDir: string): Promise<any> {
 
   // Collect outputs from each type
   const types = ['synthesizer', 'preprocess', 'prove', 'verify'];
-  
+
   for (const type of types) {
     const typeDir = path.join(proofDir, type);
     if (await fs.pathExists(typeDir)) {
@@ -194,11 +220,11 @@ async function collectAllOutputs(proofDir: string): Promise<any> {
 async function collectJsonFiles(dir: string): Promise<any> {
   const result: any = {};
   const files = await fs.readdir(dir);
-  
+
   for (const file of files) {
     const filePath = path.join(dir, file);
     const stats = await fs.stat(filePath);
-    
+
     if (stats.isFile() && file.endsWith('.json')) {
       try {
         const fileName = path.basename(file, '.json');
@@ -210,6 +236,6 @@ async function collectJsonFiles(dir: string): Promise<any> {
       }
     }
   }
-  
+
   return result;
 }

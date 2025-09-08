@@ -520,6 +520,13 @@ export class ScriptRunner {
       logger.info('Running preprocessing...');
       results.preprocess = await this.runPreprocess(options);
       if (!results.preprocess.success) {
+        // Check if setup files are missing
+        const setupComplete = await this.isTrustedSetupComplete();
+        if (!setupComplete) {
+          throw new Error(
+            'SETUP_MISSING: Preprocessing failed because trusted setup files are missing'
+          );
+        }
         throw new Error('Preprocessing failed');
       }
 
