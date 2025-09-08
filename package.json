@@ -1,6 +1,6 @@
 {
-  "name": "@tokamak-zk-evm/cli",
-  "version": "1.0.4",
+  "name": "create-tokamak-zk-evm",
+  "version": "1.0.5",
   "description": "NPX-installable CLI package for Tokamak-zk-EVM proof generation and verification",
   "main": "dist/index.js",
   "bin": {
@@ -28,12 +28,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tokamak-zk-evm/cli.git"
+    "url": "https://github.com/tokamak-zk-evm/create-tokamak-zk-evm.git"
   },
   "bugs": {
-    "url": "https://github.com/tokamak-zk-evm/cli/issues"
+    "url": "https://github.com/tokamak-zk-evm/create-tokamak-zk-evm/issues"
   },
-  "homepage": "https://github.com/tokamak-zk-evm/cli#readme",
+  "homepage": "https://github.com/tokamak-zk-evm/create-tokamak-zk-evm#readme",
   "engines": {
     "node": ">=16.0.0"
   },

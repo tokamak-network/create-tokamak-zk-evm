@@ -303,8 +303,8 @@ tokamak-zk-evm init
 ### Building from Source
 
 ```bash
-git clone https://github.com/tokamak-network/tokamak-zk-evm-cli.git
-cd tokamak-zk-evm-cli
+git clone https://github.com/tokamak-zk-evm/create-tokamak-zk-evm.git
+cd create-tokamak-zk-evm
 npm install
 npm run build
 ```
@@ -336,8 +336,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/tokamak-network/tokamak-zk-evm-cli/issues)
-- **Documentation**: [GitHub Wiki](https://github.com/tokamak-network/tokamak-zk-evm-cli/wiki)
+- **Issues**: [GitHub Issues](https://github.com/tokamak-zk-evm/create-tokamak-zk-evm/issues)
+- **Documentation**: [GitHub Wiki](https://github.com/tokamak-zk-evm/create-tokamak-zk-evm/wiki)
 - **Community**: [Tokamak Network Discord](https://discord.gg/tokamak)
 
 ---
