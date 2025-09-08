@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import { createWriteStream } from 'fs';
 import { GitHubRelease, GitHubAsset, PlatformInfo } from '../types';
 import { GITHUB_API_BASE_URL } from '../config/defaults';
 import { logger } from './logger';
@@ -148,8 +149,7 @@ export class GitHubApiClient {
         },
       });
 
-      const fs = await import('fs-extra');
-      const writer = fs.createWriteStream(outputPath);
+      const writer = createWriteStream(outputPath);
 
       let downloadedBytes = 0;
       const totalBytes = asset.size;

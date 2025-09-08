@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs-extra';
+import { createWriteStream } from 'fs';
 import * as tar from 'tar';
 import * as yauzl from 'yauzl';
 import { GitHubApiClient } from './github-api';
@@ -148,7 +149,7 @@ export class BinaryManager {
               const outputPath = path.join(extractPath, entry.fileName);
               fs.ensureDir(path.dirname(outputPath))
                 .then(() => {
-                  const writeStream = fs.createWriteStream(outputPath);
+                  const writeStream = createWriteStream(outputPath);
                   readStream.pipe(writeStream);
 
                   writeStream.on('close', () => {
