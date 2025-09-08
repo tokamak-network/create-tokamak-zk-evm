@@ -6,7 +6,10 @@ NPX-installable CLI package for Tokamak-zk-EVM proof generation and verification
 
 - 🚀 **One-command installation**: `npx create-tokamak-zk-evm`
 - 🔐 **Zero-knowledge proof generation** from transaction hashes
-- ✅ **Proof verification** with detailed results
+- ✅ **Advanced proof verification** with multiple modes:
+  - 🎯 **Interactive mode**: Select proofs from a list
+  - 🔄 **Regenerate mode**: Rebuild components before verification
+  - 📊 **Detailed results**: Format validation + cryptographic verification
 - 📦 **Automatic binary management** with platform detection
 - 🌐 **Cross-platform support** (macOS, Linux)
 - 📊 **Progress tracking** and detailed logging
@@ -43,11 +46,17 @@ tokamak-zk-evm prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88
 ### Verify a Proof
 
 ```bash
-# Verify a proof directory
+# Basic verification - verify a proof directory
 tokamak-zk-evm verify ./tokamak-outputs/proof-0x6c7903e420-2024-01-15T10-30-00-000Z
 
-# Verify a specific proof file
-tokamak-zk-evm verify ./tokamak-outputs/proof-0x6c7903e420-2024-01-15T10-30-00-000Z/prove/proof.json
+# Interactive mode - select from available proofs
+tokamak-zk-evm verify --interactive
+
+# Regenerate mode - regenerate from proof.json and transaction_hash.txt
+tokamak-zk-evm verify --regenerate ./path/to/proof-directory
+
+# Verify with custom output directory
+tokamak-zk-evm verify --interactive --output-dir ./my-proofs
 ```
 
 ### Export Outputs
@@ -97,14 +106,35 @@ tokamak-zk-evm prove 0x123...abc --rpc-url https://mainnet.infura.io/v3/YOUR-PRO
 - `--skip-trusted-setup`: Skip trusted setup (if already run)
 - `--rpc-url <url>`: RPC URL for transaction data (**required**)
 
-### `verify <proof-file>`
+### `verify [proof-file]`
 
-Verify a zero-knowledge proof.
+Verify a zero-knowledge proof with multiple modes.
 
 ```bash
+# Basic verification
 tokamak-zk-evm verify ./proof-directory
 tokamak-zk-evm verify ./proof.json --verbose
+
+# Interactive mode - select from available proofs
+tokamak-zk-evm verify --interactive
+tokamak-zk-evm verify --interactive --output-dir ./my-proofs
+
+# Regenerate mode - regenerate components before verification
+tokamak-zk-evm verify --regenerate ./proof-directory
 ```
+
+**Options:**
+
+- `--interactive`: Interactive mode to select from list-outputs
+- `--regenerate`: Regenerate proof components from proof.json and transaction_hash.txt
+- `--output-dir <dir>`: Output directory to scan for proofs (default: ./tokamak-outputs)
+- `--verbose`: Show detailed output
+
+**Regenerate Mode Requirements:**
+
+- Directory must contain `proof.json` file
+- Directory must contain `transaction_hash.txt` file
+- RPC URL must be configured in project
 
 ### `export <type> <destination>`
 
@@ -255,7 +285,35 @@ tokamak-outputs/
     │   ├── proof.json
     │   └── public_inputs.json
     └── verify/             # Verification results
-        └── verification_result.json
+        └── verification.json
+```
+
+## Verification Results
+
+The CLI provides clear verification results with two levels of validation:
+
+### 1. Format Validation
+
+- ✅ **Proof format is VALID**: The proof file is properly formatted and readable
+
+### 2. Cryptographic Verification
+
+- ✅ **Verification result: TRUE**: The proof is mathematically valid and cryptographically sound
+- ❌ **Verification result: FALSE**: The proof is invalid or tampered with
+
+### Example Output
+
+```bash
+✅ Proof format is VALID
+✅ Verification result: TRUE
+
+🔍 Verification Details
+=======================
+Proof Status: ✅ Valid
+Verification Result: TRUE
+Verified At: 9/8/2025, 4:58:11 PM
+Exit Code: 0
+Message: Proof verification successful
 ```
 
 ## Troubleshooting
