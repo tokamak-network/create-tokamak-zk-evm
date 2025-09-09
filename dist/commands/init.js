@@ -41,13 +41,14 @@ exports.initializeProject = initializeProject;
 const commander_1 = require("commander");
 const fs = __importStar(require("fs-extra"));
 const path = __importStar(require("path"));
-const readline = __importStar(require("readline"));
+const child_process_1 = require("child_process");
 const chalk_1 = __importDefault(require("chalk"));
 const logger_1 = require("../utils/logger");
 const config_manager_1 = require("../utils/config-manager");
 const binary_manager_1 = require("../utils/binary-manager");
 const platform_detector_1 = require("../utils/platform-detector");
 const script_runner_1 = require("../utils/script-runner");
+const welcome_screen_1 = require("../utils/welcome-screen");
 function createInitCommand() {
     const command = new commander_1.Command('init');
     command
@@ -106,6 +107,9 @@ async function initializeProject(projectName, options = {}) {
         projectConfig.rpcUrl = rpcUrl;
     }
     await configManager.createProjectConfig(projectConfig);
+    // Create package.json and install CLI locally
+    await createPackageJson(projectDir, projectName);
+    const globalInstalled = await promptAndInstallGlobally();
     // Download binary if not skipped
     let binaryManager = null;
     if (!skipBinary) {
@@ -125,7 +129,7 @@ async function initializeProject(projectName, options = {}) {
     // Create example files
     await createExampleFiles(projectDir);
     // Display success message
-    displaySuccessMessage(projectName, skipBinary);
+    displaySuccessMessage(projectName, skipBinary, globalInstalled);
 }
 async function createProjectStructure(projectDir) {
     const directories = ['scripts', 'outputs', 'configs'];
@@ -205,7 +209,7 @@ Thumbs.db
     await fs.writeFile(path.join(projectDir, '.gitignore'), gitignore);
     logger_1.logger.debug('Created example files');
 }
-function displaySuccessMessage(projectName, skipBinary) {
+function displaySuccessMessage(projectName, skipBinary, globalInstalled) {
     console.log();
     console.log(chalk_1.default.green('🎉 Project initialized successfully!'));
     console.log();
@@ -219,8 +223,19 @@ function displaySuccessMessage(projectName, skipBinary) {
     if (skipBinary) {
         console.log('  tokamak-zk-evm init --skip-binary=false  # Download binary');
     }
-    console.log('  tokamak-zk-evm prove <transaction-hash>   # Generate a proof');
-    console.log('  tokamak-zk-evm --help                     # See all commands');
+    if (globalInstalled) {
+        console.log('  tokamak-zk-evm prove <transaction-hash>   # Generate a proof');
+        console.log('  tokamak-zk-evm verify --interactive       # Verify proofs');
+        console.log('  tokamak-zk-evm setup                      # Configure trusted setup');
+        console.log('  tokamak-zk-evm --help                     # See all commands');
+    }
+    else {
+        console.log('  npx tokamak-zk-evm prove <tx-hash>        # Generate a proof');
+        console.log('  npx tokamak-zk-evm verify --interactive   # Verify proofs');
+        console.log('  npx tokamak-zk-evm setup                  # Configure trusted setup');
+        console.log('  npm run prove <transaction-hash>          # Or use npm scripts');
+        console.log('  npm run verify                            # Or use npm scripts');
+    }
     console.log();
     console.log(chalk_1.default.gray('Happy proving! 🔐'));
 }
@@ -237,7 +252,8 @@ async function handleTrustedSetup(binaryManager, setupMode, config) {
     let selectedMode = setupMode;
     // Ask user if mode is 'ask'
     if (setupMode === 'ask') {
-        selectedMode = await promptForSetupMode(binaryManager);
+        const hasSetupFiles = await binaryManager.hasSetupFiles();
+        selectedMode = await (0, welcome_screen_1.promptForSetupMode)(hasSetupFiles);
     }
     console.log();
     logger_1.logger.info(chalk_1.default.blue('🔧 Setting up trusted setup files...'));
@@ -272,58 +288,6 @@ async function handleTrustedSetup(binaryManager, setupMode, config) {
     }
 }
 /**
- * Prompt user for setup mode
- */
-async function promptForSetupMode(binaryManager) {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-    // Check if setup files are available in release
-    const hasSetupFiles = await binaryManager.hasSetupFiles();
-    console.log();
-    console.log(chalk_1.default.blue('🔧 Trusted Setup Configuration'));
-    console.log(chalk_1.default.gray('================================'));
-    console.log();
-    console.log('Trusted setup is required for proof generation. Choose an option:');
-    console.log();
-    if (hasSetupFiles) {
-        console.log(chalk_1.default.green('1. download') +
-            ' - Download pre-computed setup files from release (recommended)');
-    }
-    else {
-        console.log(chalk_1.default.gray('1. download') +
-            ' - Download pre-computed setup files (not available)');
-    }
-    console.log(chalk_1.default.yellow('2. local') +
-        '   - Run trusted setup locally (takes time but more secure)');
-    console.log(chalk_1.default.gray('3. skip') + '    - Skip for now (can run later)');
-    console.log();
-    return new Promise((resolve) => {
-        const askForChoice = () => {
-            const defaultChoice = hasSetupFiles ? 'download' : 'local';
-            rl.question(chalk_1.default.cyan(`Choose setup mode (download/local/skip) [${defaultChoice}]: `), (answer) => {
-                const choice = answer.trim().toLowerCase() || defaultChoice;
-                if (['download', 'local', 'skip'].includes(choice)) {
-                    if (choice === 'download' && !hasSetupFiles) {
-                        console.log(chalk_1.default.red('❌ Download option not available. Setup files not found in release.'));
-                        askForChoice();
-                    }
-                    else {
-                        rl.close();
-                        resolve(choice);
-                    }
-                }
-                else {
-                    console.log(chalk_1.default.red('Please enter "download", "local", or "skip"'));
-                    askForChoice();
-                }
-            });
-        };
-        askForChoice();
-    });
-}
-/**
  * Run local trusted setup
  */
 async function runLocalTrustedSetup(binaryManager, _config) {
@@ -338,6 +302,128 @@ async function runLocalTrustedSetup(binaryManager, _config) {
     });
     if (!result.success) {
         throw new Error(`Trusted setup failed: ${result.stderr || result.stdout}`);
+    }
+}
+/**
+ * Create package.json for the project
+ */
+async function createPackageJson(projectDir, projectName) {
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    // Skip if package.json already exists
+    if (await fs.pathExists(packageJsonPath)) {
+        logger_1.logger.debug('package.json already exists, skipping creation');
+        return;
+    }
+    const packageJson = {
+        name: projectName || path.basename(projectDir),
+        version: '1.0.0',
+        description: 'Tokamak-zk-EVM proof generation project',
+        private: true,
+        scripts: {
+            prove: 'tokamak-zk-evm prove',
+            verify: 'tokamak-zk-evm verify',
+            setup: 'tokamak-zk-evm setup',
+            status: 'tokamak-zk-evm status',
+            'list-outputs': 'tokamak-zk-evm list-outputs',
+        },
+        devDependencies: {},
+        keywords: ['tokamak', 'zk-evm', 'zero-knowledge', 'proof'],
+        author: '',
+        license: 'MIT',
+    };
+    await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    logger_1.logger.info('📦 Created package.json');
+}
+/**
+ * Check if CLI is already installed globally
+ */
+async function isGloballyInstalled() {
+    return new Promise((resolve) => {
+        const npmList = (0, child_process_1.spawn)('npm', ['list', '-g', 'create-tokamak-zk-evm'], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        npmList.on('close', (code) => {
+            resolve(code === 0);
+        });
+        npmList.on('error', () => {
+            resolve(false);
+        });
+    });
+}
+/**
+ * Prompt user for global installation and install if agreed
+ */
+async function promptAndInstallGlobally() {
+    // Check if already installed globally
+    const alreadyInstalled = await isGloballyInstalled();
+    if (alreadyInstalled) {
+        logger_1.logger.info(chalk_1.default.green('✅ CLI is already installed globally'));
+        return true;
+    }
+    console.log();
+    console.log(chalk_1.default.blue('🌐 Global CLI Installation'));
+    console.log(chalk_1.default.gray('============================'));
+    console.log();
+    console.log('Would you like to install Tokamak-zk-EVM CLI globally?');
+    console.log('This allows you to use "tokamak-zk-evm" commands directly.');
+    console.log();
+    console.log(chalk_1.default.green('✅ Yes') + ' - Install globally for easier usage');
+    console.log(chalk_1.default.yellow('⏭️ No') + '  - Use "npx tokamak-zk-evm" instead');
+    console.log();
+    // Simple prompt for now
+    const readline = require('readline');
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    const choice = await new Promise((resolve) => {
+        rl.question(chalk_1.default.cyan('Install globally? (Y/n): '), (answer) => {
+            rl.close();
+            resolve(answer.trim().toLowerCase() || 'y');
+        });
+    });
+    if (choice === 'y' || choice === 'yes') {
+        console.log();
+        logger_1.logger.info('🌐 Installing Tokamak-zk-EVM CLI globally...');
+        return new Promise((resolve) => {
+            const npmInstall = (0, child_process_1.spawn)('npm', ['install', '-g', 'create-tokamak-zk-evm'], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
+            let stdout = '';
+            let stderr = '';
+            npmInstall.stdout?.on('data', (data) => {
+                stdout += data.toString();
+            });
+            npmInstall.stderr?.on('data', (data) => {
+                stderr += data.toString();
+            });
+            npmInstall.on('close', (code) => {
+                if (code === 0) {
+                    logger_1.logger.info(chalk_1.default.green('✅ CLI installed globally'));
+                    logger_1.logger.info(chalk_1.default.gray('💡 You can now use "tokamak-zk-evm" commands anywhere'));
+                    resolve(true);
+                }
+                else {
+                    logger_1.logger.warn('Failed to install CLI globally');
+                    logger_1.logger.info(chalk_1.default.yellow('💡 You can use "npx tokamak-zk-evm" instead'));
+                    logger_1.logger.debug(`npm install failed with code ${code}`);
+                    logger_1.logger.debug(`stdout: ${stdout}`);
+                    logger_1.logger.debug(`stderr: ${stderr}`);
+                    resolve(false);
+                }
+            });
+            npmInstall.on('error', (error) => {
+                logger_1.logger.warn('Failed to install CLI globally');
+                logger_1.logger.info(chalk_1.default.yellow('💡 You can use "npx tokamak-zk-evm" instead'));
+                logger_1.logger.debug(`npm install error: ${error.message}`);
+                resolve(false);
+            });
+        });
+    }
+    else {
+        logger_1.logger.info(chalk_1.default.yellow('⏭️ Skipped global installation'));
+        logger_1.logger.info(chalk_1.default.gray('💡 Use "npx tokamak-zk-evm" to run commands'));
+        return false;
     }
 }
 //# sourceMappingURL=init.js.map

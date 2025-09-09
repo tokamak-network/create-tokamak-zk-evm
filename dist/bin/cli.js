@@ -269,8 +269,7 @@ async function handleDefaultAction() {
             rpcUrl: rpcUrl,
             setupMode: setupMode,
         });
-        // Show completion message
-        (0, welcome_screen_1.displayCompletionMessage)(projectName, rpcUrl);
+        // Completion message is now handled in initializeProject
     }
     catch (error) {
         logger_1.logger.error('Setup failed:', error);

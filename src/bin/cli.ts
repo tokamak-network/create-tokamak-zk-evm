@@ -17,7 +17,6 @@ import {
   promptForRpcUrl,
   promptForSetupMode,
   displaySetupProgress,
-  displayCompletionMessage,
 } from '../utils/welcome-screen';
 
 const program = new Command();
@@ -303,8 +302,7 @@ async function handleDefaultAction(): Promise<void> {
       setupMode: setupMode as 'download' | 'local' | 'skip',
     });
 
-    // Show completion message
-    displayCompletionMessage(projectName, rpcUrl);
+    // Completion message is now handled in initializeProject
   } catch (error) {
     logger.error('Setup failed:', error);
     process.exit(1);

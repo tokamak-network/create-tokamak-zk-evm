@@ -21,21 +21,29 @@ NPX-installable CLI package for Tokamak-zk-EVM proof generation and verification
 ### Installation
 
 ```bash
-# Create a new project
+# Create a new project (will prompt for global installation)
 npx create-tokamak-zk-evm my-zk-project
 cd my-zk-project
 
 # Or initialize in existing directory
 npx create-tokamak-zk-evm
+
+# Optional: Install globally for easier usage
+npm install -g create-tokamak-zk-evm
 ```
+
+### Command Usage
+
+**If CLI is installed globally:** Use `tokamak-zk-evm` directly  
+**If CLI is not installed globally:** Use `npx tokamak-zk-evm` or `npm run` scripts (in project directory)
 
 ### Generate a Proof
 
 ```bash
-# Simple proof generation (if RPC URL is already configured)
+# Simple proof generation (if RPC URL is configured)
 tokamak-zk-evm prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88dfdb002
 
-# Generate proof with RPC URL (if not configured)
+# Generate proof with RPC URL
 tokamak-zk-evm prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88dfdb002 \
   --rpc-url https://mainnet.infura.io/v3/YOUR-PROJECT-ID \
   --verbose
@@ -45,12 +53,15 @@ tokamak-zk-evm prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88
   --rpc-url https://mainnet.infura.io/v3/YOUR-PROJECT-ID \
   --output-dir ./my-proofs \
   --keep-intermediates
+
+# Using npm scripts (in project directory)
+npm run prove 0x6c7903e420c5efb27639f5186a7474ef2137f12c786a90b4efdcb5d88dfdb002
 ```
 
 ### Verify a Proof
 
 ```bash
-# Basic verification - verify a proof directory
+# Basic verification
 tokamak-zk-evm verify ./tokamak-zk-evm-outputs/proof-0x6c7903e420-2024-01-15T10-30-00-000Z
 
 # Interactive mode - select from available proofs
@@ -59,8 +70,8 @@ tokamak-zk-evm verify --interactive
 # Regenerate mode - regenerate from proof.json and transaction_hash.txt
 tokamak-zk-evm verify --regenerate ./path/to/proof-directory
 
-# Verify with custom output directory
-tokamak-zk-evm verify --interactive --output-dir ./my-proofs
+# Using npm scripts (in project directory)
+npm run verify -- --interactive
 ```
 
 ### Export Outputs
@@ -117,15 +128,8 @@ tokamak-zk-evm prove 0x123...abc --rpc-url https://mainnet.infura.io/v3/YOUR-PRO
 Verify a zero-knowledge proof with multiple modes.
 
 ```bash
-# Basic verification
-tokamak-zk-evm verify ./proof-directory
-tokamak-zk-evm verify ./proof.json --verbose
-
-# Interactive mode - select from available proofs
 tokamak-zk-evm verify --interactive
-tokamak-zk-evm verify --interactive --output-dir ./my-proofs
-
-# Regenerate mode - regenerate components before verification
+tokamak-zk-evm verify ./proof-directory --verbose
 tokamak-zk-evm verify --regenerate ./proof-directory
 ```
 
@@ -147,13 +151,9 @@ tokamak-zk-evm verify --regenerate ./proof-directory
 Configure trusted setup for proof generation with interactive mode.
 
 ```bash
-# Interactive mode with arrow key navigation
-tokamak-zk-evm setup
-
-# Direct mode options
-tokamak-zk-evm setup --mode download  # Download pre-computed files
-tokamak-zk-evm setup --mode local     # Run local trusted setup
-tokamak-zk-evm setup --mode skip      # Skip setup for now
+tokamak-zk-evm setup                    # Interactive mode with arrow key navigation
+tokamak-zk-evm setup --mode download   # Download pre-computed files
+tokamak-zk-evm setup --mode local      # Run local trusted setup
 ```
 
 **Options:**
@@ -194,6 +194,9 @@ tokamak-zk-evm list-outputs
 
 # Configure trusted setup (interactive)
 tokamak-zk-evm setup
+
+# Show status
+tokamak-zk-evm status
 
 # Clean cache and temporary files
 tokamak-zk-evm clean --all

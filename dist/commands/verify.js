@@ -53,7 +53,7 @@ function createVerifyCommand() {
         .description('Verify a zero-knowledge proof')
         .argument('[proof-file]', 'Path to the proof file or proof directory (optional for interactive mode)')
         .option('--interactive', 'Interactive mode: select from list-outputs')
-        .option('--regenerate', 'Regenerate proof from proof.json and transaction_hash.txt before verification')
+        .option('--regenerate <proof-file>', 'Regenerate proof from proof.json and transaction_hash.txt before verification')
         .option('--output-dir <dir>', 'Output directory to scan for proofs (default: ./tokamak-zk-evm-outputs)')
         .option('--verbose', 'Show detailed output')
         .action(async (proofFile, options) => {
@@ -62,10 +62,7 @@ function createVerifyCommand() {
                 await verifyInteractive(options);
             }
             else if (options.regenerate) {
-                if (!proofFile) {
-                    throw new Error('Proof file path is required for regenerate mode');
-                }
-                await verifyWithRegeneration(proofFile, options);
+                await verifyWithRegeneration(options.regenerate, options);
             }
             else {
                 if (!proofFile) {
