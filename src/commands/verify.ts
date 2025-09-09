@@ -20,7 +20,7 @@ export function createVerifyCommand(): Command {
     )
     .option('--interactive', 'Interactive mode: select from list-outputs')
     .option(
-      '--regenerate <proof-file>',
+      '--regenerate <proof-dir>',
       'Regenerate proof from proof.json and transaction_hash.txt before verification'
     )
     .option(
