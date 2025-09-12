@@ -274,8 +274,6 @@ The synthesizer requires an RPC URL to fetch transaction data. You can provide i
 - **QuickNode**: `https://your-endpoint.quiknode.pro/YOUR-API-KEY/` (Archive add-on required)
 - **Custom RPC**: Any Ethereum-compatible **full archival node** endpoint
 
-**Note**: Most free RPC tiers do not provide archival data. You may need to upgrade to a paid plan that includes archive access.
-
 ## Binary Management
 
 The CLI automatically downloads and manages Tokamak-zk-EVM binaries:
@@ -418,7 +416,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/tokamak-zk-evm/create-tokamak-zk-evm/issues)
-- **Community**: [Tokamak ZKP World Discord](https://discord.gg/tokamak), [Tokamak ZKP World X](https://x.com/TokamakZKPWorld)
+- **Community**: [Tokamak ZKP World Discord](https://discord.com/invite/BgtSfggv), [Tokamak ZKP World X](https://x.com/TokamakZKPWorld)
 
 ---
 
