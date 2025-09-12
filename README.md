@@ -267,17 +267,21 @@ The synthesizer requires an RPC URL to fetch transaction data. You can provide i
 
 ### Supported RPC Providers
 
-- **Infura**: `https://mainnet.infura.io/v3/YOUR-PROJECT-ID`
-- **Alchemy**: `https://eth-mainnet.alchemyapi.io/v2/YOUR-API-KEY`
-- **QuickNode**: `https://your-endpoint.quiknode.pro/YOUR-API-KEY/`
-- **Custom RPC**: Any Ethereum-compatible RPC endpoint
+⚠️ **Important**: Your RPC endpoint **MUST** be a **full archival node** to access historical transaction data and state. Standard nodes may not have the complete historical data required for proof generation.
+
+- **Infura**: `https://mainnet.infura.io/v3/YOUR-PROJECT-ID` (Archive plan required)
+- **Alchemy**: `https://eth-mainnet.alchemyapi.io/v2/YOUR-API-KEY` (Archive tier required)
+- **QuickNode**: `https://your-endpoint.quiknode.pro/YOUR-API-KEY/` (Archive add-on required)
+- **Custom RPC**: Any Ethereum-compatible **full archival node** endpoint
+
+**Note**: Most free RPC tiers do not provide archival data. You may need to upgrade to a paid plan that includes archive access.
 
 ## Binary Management
 
 The CLI automatically downloads and manages Tokamak-zk-EVM binaries:
 
 - **Automatic platform detection** (macOS, Linux)
-- **Latest release fetching** from GitHub
+- **Latest release fetching** from [Tokamak-zk-EVM Release](https://github.com/tokamak-network/Tokamak-zk-EVM/releases)
 - **Local caching** in `~/.tokamak-zk-evm/binaries/`
 - **Version management** and updates
 
@@ -401,27 +405,9 @@ tokamak-zk-evm init
 tokamak-zk-evm setup  # Configure trusted setup
 ```
 
-## Development
-
-### Building from Source
-
-```bash
-git clone https://github.com/tokamak-zk-evm/create-tokamak-zk-evm.git
-cd create-tokamak-zk-evm
-npm install
-npm run build
-```
-
-### Testing
-
-```bash
-npm test
-npm run lint
-```
-
 ## Requirements
 
-- **Node.js**: >= 16.0.0
+- **Node.js**: >= 20.0.0
 - **Platform**: macOS or Linux (x64/arm64)
 - **RPC Access**: Ethereum RPC endpoint for transaction data
 
@@ -429,19 +415,10 @@ npm run lint
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/tokamak-zk-evm/create-tokamak-zk-evm/issues)
-- **Documentation**: [GitHub Wiki](https://github.com/tokamak-zk-evm/create-tokamak-zk-evm/wiki)
-- **Community**: [Tokamak Network Discord](https://discord.gg/tokamak)
+- **Community**: [Tokamak ZKP World Discord](https://discord.gg/tokamak), [Tokamak ZKP World X](https://x.com/TokamakZKPWorld)
 
 ---
 
